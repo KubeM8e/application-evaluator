@@ -10,6 +10,13 @@ import (
 	"net/http"
 )
 
+const (
+	fileUploadStatus    = "File uploaded successfully"
+	techUsed            = "The technology used is "
+	hasDockerizedMsg    = "The application has been dockerized"
+	hasNotDockerizedMsg = "The application has not been dockerized"
+)
+
 func CreateTechDataHandler(c echo.Context) error {
 	var request []models.CreateTechDataRequest
 
@@ -45,5 +52,18 @@ func UploadSourceCodeHandler(c echo.Context) error {
 	technologiesMap := utils.ReadFromDB()
 	tech := evaluators.EvaluateTechnologies(technologiesMap, sourceCode)
 
-	return c.JSON(http.StatusOK, "File uploaded successfully. The technology used is "+tech)
+	// check if dockerized
+	hasDockerized := evaluators.DockerizationEvaluator(sourceCode)
+
+	// response
+	response := models.FileUploadResponse{}
+	response.UploadStatus = fileUploadStatus
+	response.TechnologyUsed = techUsed + tech
+	if hasDockerized {
+		response.DockerizationStatus = hasDockerizedMsg
+	} else {
+		response.DockerizationStatus = hasNotDockerizedMsg
+	}
+
+	return c.JSON(http.StatusOK, &response)
 }

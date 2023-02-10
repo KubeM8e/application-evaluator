@@ -7,6 +7,12 @@ type CreateTechDataRequest struct {
 	Keywords   []string `json:"keywords"`
 }
 
+type FileUploadResponse struct {
+	UploadStatus        string `json:"uploadStatus"`
+	TechnologyUsed      string `json:"technologyUsed"`
+	DockerizationStatus string `json:"dockerizationStatus"`
+}
+
 // Database
 
 type Technology struct {
