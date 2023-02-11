@@ -2,9 +2,15 @@ package models
 
 // API
 
-type CreateTechDataRequest struct {
+type TechData struct {
 	Technology string   `json:"technology"`
 	Keywords   []string `json:"keywords"`
+}
+
+type DBData struct {
+	Database string   `json:"database"`
+	Language string   `json:"language"`
+	Keywords []string `json:"keywords"`
 }
 
 type FileUploadResponse struct {
@@ -18,5 +24,10 @@ type FileUploadResponse struct {
 // Database
 
 type Technology struct {
+	Keywords []string `json:"keywords"`
+}
+
+type Database struct {
+	Language string   `json:"language"`
 	Keywords []string `json:"keywords"`
 }

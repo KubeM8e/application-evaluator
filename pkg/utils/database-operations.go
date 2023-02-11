@@ -3,6 +3,7 @@ package utils
 import (
 	"application-evaluator/models"
 	"context"
+	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -11,44 +12,50 @@ import (
 )
 
 const (
-	databaseName = "Technologies"
+	techDB     = "Technologies"
+	databaseDB = "Databases"
 )
 
 // TODO: move this to an env?
 var mongoURI = "mongodb://localhost:27017"
 
-func ConnectMongoDB(techData []models.CreateTechDataRequest) {
-	client, err := mongo.NewClient(options.Client().ApplyURI(mongoURI))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ctx := context.Background()
-	err = client.Connect(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+func CreateTechDataDB(techData []models.TechData) {
+	ctx, client := connectMongoDB(mongoURI)
 	for _, data := range techData {
 		specificTechData := models.Technology{}
 		specificTechData.Keywords = data.Keywords
-		CreateDatabase(ctx, client, data.Technology, specificTechData)
-	}
 
-	defer client.Disconnect(ctx)
+		// creates database and collection
+		collection := createDatabase(client, techDB, data.Technology)
+
+		// inserts data into the created collection
+		_, err := collection.InsertOne(ctx, specificTechData)
+		if err != nil {
+			log.Printf("Could not create tech data collection: %v", err)
+		}
+	}
 }
 
-func CreateDatabase(ctx context.Context, mongoClient *mongo.Client, collectionName string, DBRequest models.Technology) {
-	baseCollection := mongoClient.Database(databaseName).Collection(collectionName)
-	_, err := baseCollection.InsertOne(ctx, DBRequest)
-	if err != nil {
-		log.Fatalf("Could not create collection: %v", err)
-	}
+func CreateDBDataDB(DBData []models.DBData) {
+	ctx, client := connectMongoDB(mongoURI)
+	for _, data := range DBData {
+		specificDBData := models.Database{}
+		specificDBData.Keywords = data.Keywords
+		specificDBData.Language = data.Language
 
+		// creates database and collection
+		collection := createDatabase(client, databaseDB, data.Database)
+
+		// inserts data into the created collection
+		_, err := collection.InsertOne(ctx, specificDBData)
+		if err != nil {
+			log.Printf("Could not create DB data collection: %v", err)
+		}
+	}
 }
 
-func ReadFromDB() map[string][]string {
-	client, err := mongo.NewClient(options.Client().ApplyURI(mongoURI))
+func connectMongoDB(databaseURI string) (context.Context, *mongo.Client) {
+	client, err := mongo.NewClient(options.Client().ApplyURI(databaseURI))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -58,14 +65,75 @@ func ReadFromDB() map[string][]string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Disconnect(ctx)
 
-	technologies, err := client.Database(databaseName).ListCollectionNames(ctx, bson.M{})
-	if err != nil {
-		log.Fatalf("Could not retrieve collections in the database: %v", err)
-	}
+	//defer client.Disconnect(ctx)
 
-	techMap := make(map[string][]string)
+	return ctx, client
+}
+
+func createDatabase(mongoClient *mongo.Client, databaseName string, collectionName string) *mongo.Collection {
+	return mongoClient.Database(databaseName).Collection(collectionName)
+}
+
+//func ReadFromTechDB(databaseName string) map[string][]string {
+//	client, err := mongo.NewClient(options.Client().ApplyURI(mongoURI))
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	ctx := context.Background()
+//	err = client.Connect(ctx)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	defer client.Disconnect(ctx)
+//
+//	technologies, err := client.Database(databaseName).ListCollectionNames(ctx, bson.M{})
+//	if err != nil {
+//		log.Fatalf("Could not retrieve collections in the database: %v", err)
+//	}
+//
+//	dataMap := make(map[string][]string)
+//
+//	for _, tech := range technologies {
+//		collectionHandler := client.Database(databaseName).Collection(tech)
+//
+//		projection := bson.D{
+//			{"_id", 0},
+//		}
+//		cursor, errColl := collectionHandler.Find(ctx, bson.D{}, options.Find().SetProjection(projection))
+//		if errColl != nil {
+//			log.Fatalf("Could not access the collection: %v", err)
+//		}
+//
+//		for cursor.Next(ctx) {
+//			var result bson.M
+//			err = cursor.Decode(&result)
+//			if err != nil {
+//				return nil
+//			}
+//
+//			var keywordsSlice []string
+//			keywords := result["keywords"].(primitive.A)
+//			for _, keyword := range keywords {
+//				keywordStr := keyword.(string)
+//				keywordsSlice = append(keywordsSlice, keywordStr)
+//			}
+//
+//			dataMap[tech] = keywordsSlice
+//
+//		}
+//
+//	}
+//
+//	return dataMap
+//}
+
+func ReadFromTechDB(databaseName string) []models.TechData {
+	var techData models.TechData
+	var techDataAll []models.TechData
+
+	technologies, ctx, client := listCollections(databaseName)
 
 	for _, tech := range technologies {
 		collectionHandler := client.Database(databaseName).Collection(tech)
@@ -75,14 +143,14 @@ func ReadFromDB() map[string][]string {
 		}
 		cursor, errColl := collectionHandler.Find(ctx, bson.D{}, options.Find().SetProjection(projection))
 		if errColl != nil {
-			log.Fatalf("Could not access the collection: %v", err)
+			log.Fatalf("Could not access the technologies collection: %v", errColl)
 		}
 
 		for cursor.Next(ctx) {
 			var result bson.M
-			err = cursor.Decode(&result)
+			err := cursor.Decode(&result)
 			if err != nil {
-				return nil
+				fmt.Printf("TechDB - error in the cursor %v", err)
 			}
 
 			var keywordsSlice []string
@@ -92,11 +160,79 @@ func ReadFromDB() map[string][]string {
 				keywordsSlice = append(keywordsSlice, keywordStr)
 			}
 
-			techMap[tech] = keywordsSlice
+			techData.Technology = tech
+			techData.Keywords = keywordsSlice
+			techDataAll = append(techDataAll, techData)
 
 		}
 
 	}
 
-	return techMap
+	return techDataAll
+}
+
+func ReadFromDatabaseDB(databaseName string) []models.DBData {
+	var DBData models.DBData
+	var DBDataAll []models.DBData
+
+	databases, ctx, client := listCollections(databaseName)
+
+	for _, database := range databases {
+		collectionHandler := client.Database(databaseName).Collection(database)
+
+		projection := bson.D{
+			{"_id", 0},
+		}
+		cursor, errColl := collectionHandler.Find(ctx, bson.D{}, options.Find().SetProjection(projection))
+		if errColl != nil {
+			log.Printf("Could not access the database collection: %v", errColl)
+		}
+
+		for cursor.Next(ctx) {
+			var result bson.M
+			err := cursor.Decode(&result)
+			if err != nil {
+				fmt.Printf("DatabaseDB - error in the cursor %v", err)
+			}
+
+			fmt.Println("result: ", result)
+
+			var keywordsSlice []string
+			keywords := result["keywords"].(primitive.A)
+			for _, keyword := range keywords {
+				keywordStr := keyword.(string)
+				keywordsSlice = append(keywordsSlice, keywordStr)
+			}
+
+			DBData.Database = database
+			DBData.Language = result["language"].(string)
+			DBData.Keywords = keywordsSlice
+			DBDataAll = append(DBDataAll, DBData)
+
+		}
+
+	}
+
+	return DBDataAll
+}
+
+func listCollections(databaseName string) ([]string, context.Context, *mongo.Client) {
+	client, err := mongo.NewClient(options.Client().ApplyURI(mongoURI))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ctx := context.Background()
+	err = client.Connect(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//defer client.Disconnect(ctx)
+
+	data, err := client.Database(databaseName).ListCollectionNames(ctx, bson.M{})
+	if err != nil {
+		log.Printf("Could not retrieve collections in the database: %v", err)
+	}
+
+	return data, ctx, client
 }
