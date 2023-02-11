@@ -3,7 +3,6 @@ package evaluators
 import (
 	"bufio"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,6 +12,8 @@ const (
 	gitHubFolder         = ".github"
 	gitHubWorkflowFolder = "workflows"
 	dockerizationCommand = "docker/build-push-action@v1"
+	serviceKind          = "kind: Service"
+	deploymentKind       = "kind: Deployment"
 )
 
 func DockerizationEvaluator2(sourceCodeDir string) bool {
@@ -31,7 +32,7 @@ func DockerizationEvaluator2(sourceCodeDir string) bool {
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			line := scanner.Text()
-			if strings.Contains(dockerizationCommand, line) {
+			if strings.Contains(line, dockerizationCommand) {
 				hasDockerized = true
 			}
 		}
@@ -51,7 +52,7 @@ func DockerizationEvaluator(sourceCodeDir string) bool {
 	var workflowsPath string
 	var hasDockerized bool
 
-	err := filepath.Walk(sourceCodeDir, func(path string, info fs.FileInfo, err error) error {
+	err := filepath.Walk(sourceCodeDir, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			if info.Name() == gitHubWorkflowFolder {
 				workflowsPath = path
@@ -59,7 +60,7 @@ func DockerizationEvaluator(sourceCodeDir string) bool {
 				hasDockerized = false
 			}
 		}
-		return nil
+		return err
 	})
 	if err != nil {
 		fmt.Println(err)
@@ -75,11 +76,11 @@ func DockerizationEvaluator(sourceCodeDir string) bool {
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			line := scanner.Text()
-			if strings.Contains(dockerizationCommand, line) {
+			if strings.Contains(line, dockerizationCommand) {
 				hasDockerized = true
 			}
 		}
-		return nil
+		return err
 	})
 
 	if err != nil {
@@ -87,4 +88,40 @@ func DockerizationEvaluator(sourceCodeDir string) bool {
 	}
 
 	return hasDockerized
+}
+
+func HelmConfigsEvaluator(sourceCodeDir string) (bool, bool) {
+	var hasServiceYaml bool
+	var hasDeploymentYaml bool
+
+	err := filepath.Walk(sourceCodeDir, func(path string, info os.FileInfo, err error) error {
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			line := scanner.Text()
+
+			// service
+			if strings.Contains(line, serviceKind) {
+				hasServiceYaml = true
+			}
+
+			// deployment
+			if strings.Contains(line, deploymentKind) {
+				hasDeploymentYaml = true
+			}
+		}
+		return err
+	})
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return hasServiceYaml, hasDeploymentYaml
+
 }

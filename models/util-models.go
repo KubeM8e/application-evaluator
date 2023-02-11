@@ -8,9 +8,11 @@ type CreateTechDataRequest struct {
 }
 
 type FileUploadResponse struct {
-	UploadStatus        string `json:"uploadStatus"`
-	TechnologyUsed      string `json:"technologyUsed"`
-	DockerizationStatus string `json:"dockerizationStatus"`
+	UploadStatus         string `json:"uploadStatus"`
+	TechnologyUsed       string `json:"technologyUsed"`
+	DockerizationStatus  string `json:"dockerizationStatus"`
+	ServiceYamlStatus    string `json:"serviceYamlStatus"`
+	DeploymentYamlStatus string `json:"deploymentYamlStatus"`
 }
 
 // Database
