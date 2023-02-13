@@ -5,7 +5,6 @@ import (
 	"application-evaluator/pkg/evaluators"
 	"application-evaluator/pkg/utils"
 	"encoding/json"
-	"fmt"
 	"github.com/labstack/echo"
 	"log"
 	"net/http"
@@ -55,9 +54,8 @@ func UploadSourceCodeHandler(c echo.Context) error {
 	hasServiceYaml, hasDeploymentYaml := evaluators.HelmConfigsEvaluator(sourceCode)
 
 	// evaluate database
-	databasesMap := utils.ReadFromDatabaseDB(databaseDB)
-	fmt.Println(databasesMap) // TODO: remove
-	// here goes evaluate function
+	databasesSlice := utils.ReadFromDatabaseDB(databaseDB)
+	databaseUsed := evaluators.EvaluateDatabases(sourceCode, databasesSlice, tech)
 
 	// response
 	response := models.FileUploadResponse{}
@@ -81,6 +79,8 @@ func UploadSourceCodeHandler(c echo.Context) error {
 	} else {
 		response.DeploymentYamlStatus = noDeploymentYamlMsg
 	}
+
+	response.Database = databaseUsed
 
 	return c.JSON(http.StatusOK, &response)
 }

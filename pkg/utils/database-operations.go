@@ -195,8 +195,6 @@ func ReadFromDatabaseDB(databaseName string) []models.DBData {
 				fmt.Printf("DatabaseDB - error in the cursor %v", err)
 			}
 
-			fmt.Println("result: ", result)
-
 			var keywordsSlice []string
 			keywords := result["keywords"].(primitive.A)
 			for _, keyword := range keywords {

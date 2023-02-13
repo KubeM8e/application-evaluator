@@ -19,6 +19,7 @@ type FileUploadResponse struct {
 	DockerizationStatus  string `json:"dockerizationStatus"`
 	ServiceYamlStatus    string `json:"serviceYamlStatus"`
 	DeploymentYamlStatus string `json:"deploymentYamlStatus"`
+	Database             string `json:"database"`
 }
 
 // Database

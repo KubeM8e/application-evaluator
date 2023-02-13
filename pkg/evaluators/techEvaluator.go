@@ -3,7 +3,6 @@ package evaluators
 import (
 	"application-evaluator/models"
 	"bufio"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -49,7 +48,7 @@ func EvaluateTechnologies1(techMap map[string][]string, sourceCodeDir string) st
 	}
 
 	// check the highest frequency tech
-	sourcecodeTech := FindTech(techFrequency)
+	sourcecodeTech := findTech(techFrequency)
 
 	return sourcecodeTech
 
@@ -81,7 +80,6 @@ func EvaluateTechnologies(techData []models.TechData, sourceCodeDir string) stri
 			for _, tech := range techData {
 				for _, word := range tech.Keywords {
 					if contains(line, word) {
-						fmt.Println(line, ": ", word)
 						techFrequency = append(techFrequency, tech.Technology)
 					}
 				}
@@ -95,7 +93,7 @@ func EvaluateTechnologies(techData []models.TechData, sourceCodeDir string) stri
 	}
 
 	// check the highest frequency tech
-	sourcecodeTech := FindTech(techFrequency)
+	sourcecodeTech := findTech(techFrequency)
 
 	return sourcecodeTech
 
@@ -106,7 +104,7 @@ func contains(s, substr string) bool {
 	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
 
-func FindTech(techSlice []string) string {
+func findTech(techSlice []string) string {
 	techFrequency := make(map[string]int)
 
 	for _, str := range techSlice {
