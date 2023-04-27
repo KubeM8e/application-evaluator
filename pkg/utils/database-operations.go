@@ -14,6 +14,7 @@ import (
 const (
 	techDB     = "Technologies"
 	databaseDB = "Databases"
+	serviceDB  = "ServiceDependencies"
 )
 
 // TODO: move this to an env?
@@ -48,6 +49,21 @@ func CreateDBDataDB(DBData []models.DBData) {
 
 		// inserts data into the created collection
 		_, err := collection.InsertOne(ctx, specificDBData)
+		if err != nil {
+			log.Printf("Could not create DB data collection: %v", err)
+		}
+	}
+}
+
+func CreateServiceDataDB(serviceData []models.ServiceData) {
+	ctx, client := connectMongoDB(mongoURI)
+	for _, data := range serviceData {
+
+		// creates database and collection
+		collection := createDatabase(client, serviceDB, data.Language)
+
+		// inserts data into the created collection
+		_, err := collection.InsertOne(ctx, data)
 		if err != nil {
 			log.Printf("Could not create DB data collection: %v", err)
 		}
@@ -212,6 +228,48 @@ func ReadFromDatabaseDB(databaseName string) []models.DBData {
 	}
 
 	return DBDataAll
+}
+
+func ReadFromServiceDB(databaseName string) []models.ServiceData {
+	var serviceData models.ServiceData
+	var serviceDataAll []models.ServiceData
+
+	databases, ctx, client := listCollections(databaseName)
+
+	for _, database := range databases {
+		collectionHandler := client.Database(databaseName).Collection(database)
+
+		projection := bson.D{
+			{"_id", 0},
+		}
+		cursor, errColl := collectionHandler.Find(ctx, bson.D{}, options.Find().SetProjection(projection))
+		if errColl != nil {
+			log.Printf("Could not access the database collection: %v", errColl)
+		}
+
+		for cursor.Next(ctx) {
+			var result bson.M
+			err := cursor.Decode(&result)
+			if err != nil {
+				fmt.Printf("DatabaseDB - error in the cursor %v", err)
+			}
+
+			var keywordsSlice []string
+			keywords := result["keywords"].(primitive.A)
+			for _, keyword := range keywords {
+				keywordStr := keyword.(string)
+				keywordsSlice = append(keywordsSlice, keywordStr)
+			}
+
+			serviceData.Language = result["language"].(string)
+			serviceData.Keywords = keywordsSlice
+			serviceDataAll = append(serviceDataAll, serviceData)
+
+		}
+
+	}
+
+	return serviceDataAll
 }
 
 func listCollections(databaseName string) ([]string, context.Context, *mongo.Client) {

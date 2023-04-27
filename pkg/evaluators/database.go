@@ -2,8 +2,8 @@ package evaluators
 
 import (
 	"application-evaluator/models"
+	"application-evaluator/pkg/utils"
 	"bufio"
-	"fmt"
 	"go/parser"
 	"go/token"
 	"golang.org/x/exp/slices"
@@ -29,20 +29,20 @@ func EvaluateDatabases1(sourceCodeDir string, DBData []models.DBData, language s
 			err := filepath.Walk(sourceCodeDir, func(path string, info os.FileInfo, err error) error {
 
 				// Open the file
-				file, err := os.Open(path)
+				//file, err := os.Open(path)
 				if err != nil {
 					return err
 				}
 
 				if strings.EqualFold(language, "Go") {
-					database = checkImportsInGo(file, data)
-					for _, v := range databases {
-						if database == v {
-
-						}
-					}
+					//database = checkImportsInGo(file, data)
+					//for _, v := range databases {
+					//	if database == v {
+					//
+					//	}
+					//}
 				} else {
-					database = checkImports(file, data)
+					//database = checkImports(file, data)
 				}
 
 				//defer file.Close()
@@ -64,6 +64,7 @@ func EvaluateDatabases(sourceCodeDir string, DBData []models.DBData, language st
 	// According to language used, check for database type and return what database type has been used
 
 	var database string
+	var imports []string
 	var databases []string
 
 	for _, data := range DBData {
@@ -81,11 +82,29 @@ func EvaluateDatabases(sourceCodeDir string, DBData []models.DBData, language st
 		if !info.IsDir() {
 			for _, data := range DBData {
 				if strings.EqualFold(language, data.Language) {
-					fmt.Println(language, data.Language) // TODO: Optimize
 					if strings.EqualFold(language, "Go") {
-						database = checkImportsInGo(file, data)
+						imports = utils.CheckImportsInGo(file) // scan import section in go files
+
+						for _, imp := range imports {
+							keywordFound := slices.Contains(data.Keywords, imp)
+							if keywordFound {
+								database = data.Database
+								break
+							}
+						}
+
 					} else {
-						database = checkImports(file, data)
+						imports = utils.CheckImports(file)
+
+					loop:
+						for _, imp := range imports {
+							for _, keyword := range data.Keywords {
+								if strings.Contains(imp, keyword) {
+									database = data.Database
+									break loop
+								}
+							}
+						}
 					}
 
 					for _, v := range databases {
@@ -193,7 +212,7 @@ func checkImportsInGo1(file *os.File, data models.DBData) string {
 //	return database
 //}
 
-func checkImportsInGo(file *os.File, data models.DBData) string {
+func checkImportsInGo2(file *os.File, data models.DBData) string {
 	var database string
 	imports := make([]string, 0)
 
@@ -204,20 +223,14 @@ func checkImportsInGo(file *os.File, data models.DBData) string {
 	}
 
 	if astFile != nil && len(astFile.Imports) > 0 {
-		fmt.Println("True")
 		for _, importSpec := range astFile.Imports {
 			unquotedImport, errUnq := strconv.Unquote(importSpec.Path.Value)
-			fmt.Println("UN: ", unquotedImport)
 			if errUnq != nil {
 				log.Printf("Could not unquote: %v", errUnq)
 			}
 
 			imports = append(imports, unquotedImport)
 		}
-	}
-
-	for _, v := range imports {
-		fmt.Println("Import: ", v)
 	}
 
 	for _, imp := range imports {
@@ -231,7 +244,7 @@ func checkImportsInGo(file *os.File, data models.DBData) string {
 	return database
 }
 
-func checkImports(file *os.File, data models.DBData) string {
+func checkImports2(file *os.File, data models.DBData) string {
 	var database string
 
 	scanner := bufio.NewScanner(file)

@@ -24,6 +24,7 @@ const (
 const (
 	techDB     = "Technologies"
 	databaseDB = "Databases"
+	serviceDB  = "ServiceDependencies"
 )
 
 func SourceFileEvalHandler(c echo.Context) error {
@@ -56,6 +57,11 @@ func UploadSourceCodeHandler(c echo.Context) error {
 	// evaluate database
 	databasesSlice := utils.ReadFromDatabaseDB(databaseDB)
 	databaseUsed := evaluators.EvaluateDatabases(sourceCode, databasesSlice, tech)
+
+	// evaluate service dependencies
+	serviceDependencies := utils.ReadFromServiceDB(serviceDB)
+	evaluators.EvaluateServiceDependencies(sourceCode, serviceDependencies, tech)
+	//fmt.Println(isService)
 
 	// response
 	response := models.FileUploadResponse{}
@@ -109,6 +115,20 @@ func CreateDBDataHandler(c echo.Context) error {
 
 	// database operations
 	utils.CreateDBDataDB(request)
+
+	return c.JSON(http.StatusOK, &request)
+}
+
+func CreateServiceDataHandler(c echo.Context) error {
+	var request []models.ServiceData
+
+	err := json.NewDecoder(c.Request().Body).Decode(&request)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// database operations
+	utils.CreateServiceDataDB(request)
 
 	return c.JSON(http.StatusOK, &request)
 }

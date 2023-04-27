@@ -11,8 +11,9 @@ func main() {
 	//e.POST("/files", handlers.SourceFileEvalHandler)
 	//e.POST("/techs", handlers.TechnologyEvalHandler)
 
-	e.POST("/data/techs", handlers.CreateTechDataHandler)
+	e.POST("/data/tech", handlers.CreateTechDataHandler)
 	e.POST("/data/db", handlers.CreateDBDataHandler)
+	e.POST("/data/service", handlers.CreateServiceDataHandler)
 
 	e.Logger.Fatal(e.Start(":8082"))
 
