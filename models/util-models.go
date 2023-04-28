@@ -19,12 +19,15 @@ type ServiceData struct {
 }
 
 type FileUploadResponse struct {
-	UploadStatus         string `json:"uploadStatus"`
-	TechnologyUsed       string `json:"technologyUsed"`
-	Database             string `json:"database"`
-	DockerizationStatus  string `json:"dockerizationStatus"`
-	ServiceYamlStatus    string `json:"serviceYamlStatus"`
-	DeploymentYamlStatus string `json:"deploymentYamlStatus"`
+	UploadStatus string `json:"uploadStatus"`
+}
+
+type EvaluationResponse struct {
+	Language                string `json:"language"`
+	Database                string `json:"database"`
+	HasDockerized           bool   `json:"hasDockerized"`
+	HasKubernetesService    bool   `json:"hasKubernetesService"`
+	HasKubernetesDeployment bool   `json:"hasKubernetesDeployment"`
 }
 
 // Database
