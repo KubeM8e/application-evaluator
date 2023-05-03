@@ -94,12 +94,15 @@ func EvaluateDatabases(sourceCodeDir string, DBData []models.DBData, language st
 						}
 
 					} else {
-						imports = utils.CheckImports(file)
+						//imports = utils.CheckImports(file)
 
-					loop:
-						for _, imp := range imports {
+						// Java
+						scanner := bufio.NewScanner(file)
+						for scanner.Scan() {
+							line := scanner.Text()
+						loop:
 							for _, keyword := range data.Keywords {
-								if strings.Contains(imp, keyword) {
+								if strings.Contains(line, keyword) {
 									database = data.Database
 									break loop
 								}
@@ -177,13 +180,13 @@ func checkImportsInGo1(file *os.File, data models.DBData) string {
 //
 //		for _, pkg := range pkgs {
 //			if pkg.Imports == nil {
-//				fmt.Printf("No imports found in file %s", pkg.Name)
+//				log.Printf("No imports found in file %s", pkg.Name)
 //				continue
 //			}
 //
 //			for _, importSpec := range pkg.Imports {
 //				importPath, _ := strconv.Unquote(importSpec.Path.Value)
-//				fmt.Printf("%s imports %s\n", parsedFile.Name, importPath)
+//				log.Printf("%s imports %s\n", parsedFile.Name, importPath)
 //			}
 //		}
 //	}
@@ -208,7 +211,7 @@ func checkImportsInGo1(file *os.File, data models.DBData) string {
 //		}
 //	}
 //
-//	fmt.Println("database", database)
+//	log.Println("database", database)
 //	return database
 //}
 

@@ -15,8 +15,8 @@ func main() {
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			err := next(c)
-			// Signal that the /upload API is handled
-			if c.Path() == "/upload" {
+			// Signal that the /file-upload API is handled
+			if c.Path() == "/file-upload" {
 				ch <- true
 			}
 			return err
@@ -25,6 +25,9 @@ func main() {
 
 	e.POST("/file-upload", handlers.UploadSourceCodeHandler)
 	e.POST("/projects", handlers.CreateProjectHandler)
+	e.GET("projects", handlers.GetAllProjectsHandler)
+	e.GET("/projects/:id", handlers.GetProjectHandler)
+	e.PUT("/projects/:id", handlers.UpdateProjectHandler)
 
 	// Utility APIs
 	e.POST("/data/tech", handlers.CreateTechDataHandler)

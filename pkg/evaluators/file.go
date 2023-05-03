@@ -2,14 +2,13 @@ package evaluators
 
 import (
 	"bufio"
-	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
 const (
-	gitHubFolder         = ".github"
 	gitHubWorkflowFolder = "workflows"
 	dockerizationCommand = "docker/build-push-action@v1"
 	serviceKind          = "kind: Service"
@@ -41,7 +40,7 @@ func DockerizationEvaluator2(sourceCodeDir string) bool {
 	})
 
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 	return hasDockerized
@@ -63,7 +62,7 @@ func DockerizationEvaluator(sourceCodeDir string) bool {
 		return err
 	})
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 	err = filepath.Walk(workflowsPath, func(path string, info os.FileInfo, err error) error {
@@ -84,7 +83,7 @@ func DockerizationEvaluator(sourceCodeDir string) bool {
 	})
 
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 	return hasDockerized
@@ -119,7 +118,7 @@ func HelmConfigsEvaluator(sourceCodeDir string) (bool, bool) {
 	})
 
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 	return hasServiceYaml, hasDeploymentYaml

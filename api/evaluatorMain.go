@@ -2,7 +2,9 @@ package main
 
 import (
 	"application-evaluator/api/handlers"
+	"application-evaluator/models"
 	"application-evaluator/pkg/evaluators"
+	"encoding/json"
 	"github.com/streadway/amqp"
 	"log"
 )
@@ -29,7 +31,12 @@ func Evaluate() {
 	}
 
 	for msg := range messages {
-		evaluators.EvaluateSourcecode(string(msg.Body))
+		var projectSource models.ProjectSource
+		errP := json.Unmarshal(msg.Body, &projectSource)
+		evaluators.EvaluateSourcecode(projectSource)
+		if errP != nil {
+			log.Printf("Could not unmarshal project source: %s", errP)
+		}
 	}
 
 	if _, errPurge := ch.QueuePurge(handlers.UploadSourcecodeQueue, false); err != nil {

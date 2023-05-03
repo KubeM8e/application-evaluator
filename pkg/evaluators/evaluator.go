@@ -2,6 +2,7 @@ package evaluators
 
 import (
 	"application-evaluator/models"
+	"application-evaluator/pkg/project"
 	"application-evaluator/pkg/utils"
 )
 
@@ -11,7 +12,9 @@ const (
 	serviceDB  = "ServiceDependencies"
 )
 
-func EvaluateSourcecode(sourceCode string) {
+func EvaluateSourcecode(projectSource models.ProjectSource) {
+	sourceCode := projectSource.Sourcecode
+
 	// evaluates tech (language)
 	techDataSlice := utils.ReadFromTechDB(techDB)
 	language := EvaluateTechnologies(techDataSlice, sourceCode)
@@ -30,29 +33,42 @@ func EvaluateSourcecode(sourceCode string) {
 	serviceDependencies := utils.ReadFromServiceDB(serviceDB)
 	microservices := EvaluateServiceDependencies(sourceCode, serviceDependencies, language)
 
-	// response
-	response := models.EvaluationResponse{}
-	response.Language = language
-	response.Microservices = microservices
+	// evalResult
+	evalResult := models.EvaluationResponse{}
+	evalResult.Language = language
+	evalResult.Database = databaseUsed
+
+	// sets microservices
+	evalResult.Microservices = microservices
 
 	if hasDockerized {
-		response.HasDockerized = true
+		evalResult.HasDockerized = true
 	} else {
-		response.HasDockerized = false
+		evalResult.HasDockerized = false
 	}
 
 	if hasServiceYaml {
-		response.HasKubernetesService = true
+		evalResult.HasKubernetesService = true
 	} else {
-		response.HasKubernetesService = false
+		evalResult.HasKubernetesService = false
 	}
 
 	if hasDeploymentYaml {
-		response.HasKubernetesDeployment = true
+		evalResult.HasKubernetesDeployment = true
 	} else {
-		response.HasKubernetesDeployment = false
+		evalResult.HasKubernetesDeployment = false
 	}
 
-	response.Database = databaseUsed
+	evalResult.Database = databaseUsed
 
+	saveEvaluationResults(projectSource.ProjectId, evalResult)
+
+}
+
+func saveEvaluationResults(projectId string, evaluationResult models.EvaluationResponse) {
+	projectData := project.GetProject(projectId)
+
+	projectData.EvaluationResult = evaluationResult
+
+	project.UpdateProject(projectId, projectData)
 }

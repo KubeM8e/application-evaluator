@@ -46,4 +46,5 @@ require (
 	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
+	labix.org/v2/mgo v0.0.0-20140701140051-000000000287 // indirect
 )

@@ -10,7 +10,9 @@ import (
 	"strings"
 )
 
-func CheckImports(file *os.File) []string {
+// can be used to Java and other languages except Go
+
+func CheckImportsInJava(file *os.File) []string {
 	var imports []string
 
 	scanner := bufio.NewScanner(file)

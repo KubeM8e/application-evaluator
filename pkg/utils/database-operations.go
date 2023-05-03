@@ -3,7 +3,6 @@ package utils
 import (
 	"application-evaluator/models"
 	"context"
-	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -18,10 +17,10 @@ const (
 )
 
 // TODO: move this to an env?
-var mongoURI = "mongodb://localhost:27017"
+var MongoURI = "mongodb://localhost:27017"
 
 func CreateTechDataDB(techData []models.TechData) {
-	ctx, client := ConnectMongoDB(mongoURI)
+	ctx, client := ConnectMongoDB(MongoURI)
 	for _, data := range techData {
 		specificTechData := models.Technology{}
 		specificTechData.Keywords = data.Keywords
@@ -38,7 +37,7 @@ func CreateTechDataDB(techData []models.TechData) {
 }
 
 func CreateDBDataDB(DBData []models.DBData) {
-	ctx, client := ConnectMongoDB(mongoURI)
+	ctx, client := ConnectMongoDB(MongoURI)
 	for _, data := range DBData {
 		specificDBData := models.Database{}
 		specificDBData.Keywords = data.Keywords
@@ -56,7 +55,7 @@ func CreateDBDataDB(DBData []models.DBData) {
 }
 
 func CreateServiceDataDB(serviceData []models.ServiceData) {
-	ctx, client := ConnectMongoDB(mongoURI)
+	ctx, client := ConnectMongoDB(MongoURI)
 	for _, data := range serviceData {
 
 		// creates database and collection
@@ -92,7 +91,7 @@ func CreateDatabase(mongoClient *mongo.Client, databaseName string, collectionNa
 }
 
 //func ReadFromTechDB(databaseName string) map[string][]string {
-//	client, err := mongo.NewClient(options.Client().ApplyURI(mongoURI))
+//	client, err := mongo.NewClient(options.Client().ApplyURI(MongoURI))
 //	if err != nil {
 //		log.Fatal(err)
 //	}
@@ -166,7 +165,7 @@ func ReadFromTechDB(databaseName string) []models.TechData {
 			var result bson.M
 			err := cursor.Decode(&result)
 			if err != nil {
-				fmt.Printf("TechDB - error in the cursor %v", err)
+				log.Printf("TechDB - error in the cursor %v", err)
 			}
 
 			var keywordsSlice []string
@@ -208,7 +207,7 @@ func ReadFromDatabaseDB(databaseName string) []models.DBData {
 			var result bson.M
 			err := cursor.Decode(&result)
 			if err != nil {
-				fmt.Printf("DatabaseDB - error in the cursor %v", err)
+				log.Printf("DatabaseDB - error in the cursor %v", err)
 			}
 
 			var keywordsSlice []string
@@ -251,7 +250,7 @@ func ReadFromServiceDB(databaseName string) []models.ServiceData {
 			var result bson.M
 			err := cursor.Decode(&result)
 			if err != nil {
-				fmt.Printf("DatabaseDB - error in the cursor %v", err)
+				log.Printf("DatabaseDB - error in the cursor %v", err)
 			}
 
 			var keywordsSlice []string
@@ -273,7 +272,7 @@ func ReadFromServiceDB(databaseName string) []models.ServiceData {
 }
 
 func listCollections(databaseName string) ([]string, context.Context, *mongo.Client) {
-	client, err := mongo.NewClient(options.Client().ApplyURI(mongoURI))
+	client, err := mongo.NewClient(options.Client().ApplyURI(MongoURI))
 	if err != nil {
 		log.Fatal(err)
 	}

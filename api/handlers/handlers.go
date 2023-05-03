@@ -17,10 +17,10 @@ const (
 )
 
 func CreateProjectHandler(c echo.Context) error {
-	request := models.AppData{}
+	request := models.ProjectData{}
 	err := json.NewDecoder(c.Request().Body).Decode(&request)
 	if err != nil {
-		log.Printf("Could not retrieve app data: %s", err)
+		log.Printf("Could not retrieve project data: %s", err)
 	}
 
 	// creates project
@@ -33,6 +33,11 @@ func UploadSourceCodeHandler(c echo.Context) error {
 	sourceCodeHeader, err := c.FormFile("sourceCode")
 	if err != nil {
 		log.Printf("Could not retrieve the file %v", err)
+	}
+
+	projectId := c.FormValue("id")
+	if err != nil {
+		log.Printf("Could not retrieve the id %v", err)
 	}
 
 	fileName := utils.CopyUploadedFile(sourceCodeHeader)
@@ -59,14 +64,23 @@ func UploadSourceCodeHandler(c echo.Context) error {
 	}
 
 	// publishes source code directory to the channel - evaluate() function will consume it
+	source := models.ProjectSource{
+		ProjectId:  projectId,
+		Sourcecode: sourceCode,
+	}
+
+	sourceJson, err := json.Marshal(source)
+	if err != nil {
+		// Handle JSON serialization error
+	}
 	errPub := ch.Publish(
 		"",
 		queue.Name,
 		false,
 		false,
 		amqp.Publishing{
-			ContentType: "text/plain",
-			Body:        []byte(sourceCode),
+			ContentType: "application/json",
+			Body:        sourceJson,
 		},
 	)
 
@@ -75,10 +89,46 @@ func UploadSourceCodeHandler(c echo.Context) error {
 	}
 
 	// response
-	response := models.FileUploadResponse{}
-	response.UploadStatus = fileUploadStatus
+	response := models.SuccessfulResponse{}
+	response.Status = fileUploadStatus
 
 	return c.JSON(http.StatusOK, &response)
+}
+
+func GetAllProjectsHandler(c echo.Context) error {
+	projects := project.GetAllProjects()
+
+	return c.JSON(http.StatusOK, projects)
+}
+
+func GetProjectHandler(c echo.Context) error {
+	projectId := c.Param("id")
+	projectData := project.GetProject(projectId)
+
+	return c.JSON(http.StatusOK, &projectData)
+}
+
+func UpdateProjectHandler(c echo.Context) error {
+	projectId := c.Param("id")
+	var request models.ProjectData
+
+	err := json.NewDecoder(c.Request().Body).Decode(&request)
+	if err != nil {
+		log.Println(err)
+	}
+
+	isUpdateSuccessful := project.UpdateProject(projectId, request)
+
+	response := models.SuccessfulResponse{}
+
+	if isUpdateSuccessful {
+		response.Status = "Unsuccessful"
+	} else {
+		response.Status = "Successful"
+	}
+
+	return c.JSON(http.StatusOK, &response)
+
 }
 
 // Utility API handlers
@@ -153,10 +203,10 @@ func CreateServiceDataHandler(c echo.Context) error {
 //	// evaluate service dependencies
 //	serviceDependencies := utils.ReadFromServiceDB(serviceDB)
 //	evaluators.EvaluateServiceDependencies(sourceCode, serviceDependencies, tech)
-//	//fmt.Println(isService)
+//	//log.Println(isService)
 //
 //	// response
-//	response := models.FileUploadResponse{}
+//	response := models.SuccessfulResponse{}
 //	response.UploadStatus = fileUploadStatus
 //	response.TechnologyUsed = techUsed + tech
 //

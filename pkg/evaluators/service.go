@@ -5,7 +5,6 @@ import (
 	"application-evaluator/pkg/utils"
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"github.com/go-resty/resty/v2"
 	"golang.org/x/exp/slices"
 	"log"
@@ -17,20 +16,28 @@ import (
 
 const (
 	OpenAIAPIKey  = "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"
-	OpenAIPrompt  = "If there are calls between microservices simply answer yes or no and if the answer is yes list down the microservice in point form which calls the other microservice as \"microservice\" and the second microservice as \"depends on\" and the URL that is being called as \"URL\". If the answer is no then provide the microservice as \"microservice\""
+	OpenAIPrompt  = "If there are calls between microservices simply answer yes or no and if the answer is yes list down the microservice in point form which calls the other microservice as \"microservice\" and the second microservice as \"depends on\" and the URL that is being called as \"URL\"."
 	OpenAIPrompt1 = "Is there a call to another microservice in the following source code? If so which microservice is calling which? Provide the URL too."
 )
 
 func EvaluateServiceDependencies(sourceCodeDir string, serviceData []models.ServiceData, language string) []string {
 	var imports []string
 	var serviceDependencies []models.ServiceDependency
-	var sortedMicroservices []string
+	var allMicroservices []string
+	var dependentMicroservices []string
 
 	filepath.Walk(sourceCodeDir, func(path string, info os.FileInfo, err error) error {
 		// Open the file
 		file, err := os.Open(path)
 		if err != nil {
 			return err
+		}
+
+		// extract microservices names
+		if info.IsDir() {
+			if strings.Contains(strings.ToLower(info.Name()), "service") {
+				allMicroservices = append(allMicroservices, info.Name())
+			}
 		}
 
 		// TODO: optimize
@@ -43,8 +50,7 @@ func EvaluateServiceDependencies(sourceCodeDir string, serviceData []models.Serv
 						for _, imp := range imports {
 							keywordFound := slices.Contains(data.Keywords, imp)
 							if keywordFound {
-								evaluationResp := passFileToDavinci(file.Name()) // reads the content of the file and pass to text-davinci-003
-								fmt.Println("evaluationResp: ", evaluationResp)
+								evaluationResp := passFileToDavinci(file.Name())       // reads the content of the file and pass to text-davinci-003
 								serviceDep := extractServiceDependency(evaluationResp) // extracts service dependency data
 								serviceDependencies = append(serviceDependencies, serviceDep)
 								//break
@@ -72,12 +78,34 @@ func EvaluateServiceDependencies(sourceCodeDir string, serviceData []models.Serv
 		}
 
 		// sort service dependencies
-		sortedMicroservices = sortDependencies(serviceDependencies)
+		dependentMicroservices = sortDependencies(serviceDependencies)
 		return err
 	})
 
-	return sortedMicroservices
+	// gets order of all the microservices
+	return sortAllMicroservices(allMicroservices, dependentMicroservices)
+}
 
+func sortAllMicroservices(allMicroservices []string, sortedMicroservice []string) []string {
+	// Find the elements in slice1 that are not in slice2
+	var newElements []string
+	for _, element := range allMicroservices {
+		found := false
+		for _, value := range sortedMicroservice {
+			if element == value {
+				found = true
+				break
+			}
+		}
+		if !found {
+			newElements = append(newElements, element)
+		}
+	}
+
+	// Prepend the new elements to slice2
+	sortedMicroservice = append(newElements, sortedMicroservice...)
+
+	return sortedMicroservice
 }
 
 func EvaluateServiceDependencies2(sourceCodeDir string, serviceData []models.ServiceData, language string) []string {
@@ -102,8 +130,7 @@ func EvaluateServiceDependencies2(sourceCodeDir string, serviceData []models.Ser
 						for _, imp := range imports {
 							keywordFound := slices.Contains(data.Keywords, imp)
 							if keywordFound {
-								evaluationResp := passFileToDavinci(file.Name()) // reads the content of the file and pass to text-davinci-003
-								fmt.Println("evaluationResp: ", evaluationResp)
+								evaluationResp := passFileToDavinci(file.Name())       // reads the content of the file and pass to text-davinci-003
 								serviceDep := extractServiceDependency(evaluationResp) // extracts service dependency data
 								serviceDependencies = append(serviceDependencies, serviceDep)
 								//break
@@ -147,10 +174,6 @@ func EvaluateServiceDependencies2(sourceCodeDir string, serviceData []models.Ser
 		sortedMicroservices = sortDependencies(serviceDependencies)
 		return err
 	})
-
-	//for i, v := range serviceDependencies {
-	//	fmt.Println("Dep:", i, v)
-	//}
 
 	return sortedMicroservices
 
@@ -219,7 +242,6 @@ func extractServiceDependency(text string) models.ServiceDependency {
 		}
 	}
 
-	fmt.Println("serviceDep: ", serviceDep)
 	return serviceDep
 }
 
@@ -272,11 +294,6 @@ func sortDependencies(dependencies []models.ServiceDependency) []string {
 			}
 		}
 	}
-
-	// Print the sorted list of microservices in the correct order
-	//for i := len(sortedMicroservices) - 1; i >= 0; i-- {
-	//	fmt.Println(sortedMicroservices[i])
-	//}
 
 	return sortedMicroservices
 }
