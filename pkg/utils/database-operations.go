@@ -21,13 +21,13 @@ const (
 var mongoURI = "mongodb://localhost:27017"
 
 func CreateTechDataDB(techData []models.TechData) {
-	ctx, client := connectMongoDB(mongoURI)
+	ctx, client := ConnectMongoDB(mongoURI)
 	for _, data := range techData {
 		specificTechData := models.Technology{}
 		specificTechData.Keywords = data.Keywords
 
 		// creates database and collection
-		collection := createDatabase(client, techDB, data.Technology)
+		collection := CreateDatabase(client, techDB, data.Technology)
 
 		// inserts data into the created collection
 		_, err := collection.InsertOne(ctx, specificTechData)
@@ -38,14 +38,14 @@ func CreateTechDataDB(techData []models.TechData) {
 }
 
 func CreateDBDataDB(DBData []models.DBData) {
-	ctx, client := connectMongoDB(mongoURI)
+	ctx, client := ConnectMongoDB(mongoURI)
 	for _, data := range DBData {
 		specificDBData := models.Database{}
 		specificDBData.Keywords = data.Keywords
 		specificDBData.Language = data.Language
 
 		// creates database and collection
-		collection := createDatabase(client, databaseDB, data.Database)
+		collection := CreateDatabase(client, databaseDB, data.Database)
 
 		// inserts data into the created collection
 		_, err := collection.InsertOne(ctx, specificDBData)
@@ -56,11 +56,11 @@ func CreateDBDataDB(DBData []models.DBData) {
 }
 
 func CreateServiceDataDB(serviceData []models.ServiceData) {
-	ctx, client := connectMongoDB(mongoURI)
+	ctx, client := ConnectMongoDB(mongoURI)
 	for _, data := range serviceData {
 
 		// creates database and collection
-		collection := createDatabase(client, serviceDB, data.Language)
+		collection := CreateDatabase(client, serviceDB, data.Language)
 
 		// inserts data into the created collection
 		_, err := collection.InsertOne(ctx, data)
@@ -70,16 +70,16 @@ func CreateServiceDataDB(serviceData []models.ServiceData) {
 	}
 }
 
-func connectMongoDB(databaseURI string) (context.Context, *mongo.Client) {
+func ConnectMongoDB(databaseURI string) (context.Context, *mongo.Client) {
 	client, err := mongo.NewClient(options.Client().ApplyURI(databaseURI))
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Could not get new mongo client: %s", err)
 	}
 
 	ctx := context.Background()
 	err = client.Connect(ctx)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Could not connect to MongoDB: %s", err)
 	}
 
 	//defer client.Disconnect(ctx)
@@ -87,7 +87,7 @@ func connectMongoDB(databaseURI string) (context.Context, *mongo.Client) {
 	return ctx, client
 }
 
-func createDatabase(mongoClient *mongo.Client, databaseName string, collectionName string) *mongo.Collection {
+func CreateDatabase(mongoClient *mongo.Client, databaseName string, collectionName string) *mongo.Collection {
 	return mongoClient.Database(databaseName).Collection(collectionName)
 }
 

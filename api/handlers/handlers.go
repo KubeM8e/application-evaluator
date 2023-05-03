@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"application-evaluator/models"
+	"application-evaluator/pkg/project"
 	"application-evaluator/pkg/utils"
 	"encoding/json"
 	"github.com/labstack/echo"
@@ -15,12 +16,17 @@ const (
 	fileUploadStatus      = "File uploaded successfully"
 )
 
-func SourceFileEvalHandler(c echo.Context) error {
-	return nil
-}
+func CreateProjectHandler(c echo.Context) error {
+	request := models.AppData{}
+	err := json.NewDecoder(c.Request().Body).Decode(&request)
+	if err != nil {
+		log.Printf("Could not retrieve app data: %s", err)
+	}
 
-func TechnologyEvalHandler(c echo.Context) error {
-	return nil
+	// creates project
+	createdAppData := project.CreateProject(request)
+
+	return c.JSON(http.StatusOK, &createdAppData)
 }
 
 func UploadSourceCodeHandler(c echo.Context) error {
@@ -74,6 +80,52 @@ func UploadSourceCodeHandler(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, &response)
 }
+
+// Utility API handlers
+
+func CreateTechDataHandler(c echo.Context) error {
+	var request []models.TechData
+
+	err := json.NewDecoder(c.Request().Body).Decode(&request)
+	if err != nil {
+		log.Println(err)
+	}
+
+	// database operations
+	utils.CreateTechDataDB(request)
+
+	return c.JSON(http.StatusOK, &request)
+}
+
+func CreateDBDataHandler(c echo.Context) error {
+	var request []models.DBData
+
+	err := json.NewDecoder(c.Request().Body).Decode(&request)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// database operations
+	utils.CreateDBDataDB(request)
+
+	return c.JSON(http.StatusOK, &request)
+}
+
+func CreateServiceDataHandler(c echo.Context) error {
+	var request []models.ServiceData
+
+	err := json.NewDecoder(c.Request().Body).Decode(&request)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// database operations
+	utils.CreateServiceDataDB(request)
+
+	return c.JSON(http.StatusOK, &request)
+}
+
+// Old version
 
 //func UploadSourceCodeHandler2(c echo.Context) error {
 //	sourceCodeHeader, err := c.FormFile("sourceCode")
@@ -130,45 +182,3 @@ func UploadSourceCodeHandler(c echo.Context) error {
 //
 //	return c.JSON(http.StatusOK, &response)
 //}
-
-func CreateTechDataHandler(c echo.Context) error {
-	var request []models.TechData
-
-	err := json.NewDecoder(c.Request().Body).Decode(&request)
-	if err != nil {
-		log.Println(err)
-	}
-
-	// database operations
-	utils.CreateTechDataDB(request)
-
-	return c.JSON(http.StatusOK, &request)
-}
-
-func CreateDBDataHandler(c echo.Context) error {
-	var request []models.DBData
-
-	err := json.NewDecoder(c.Request().Body).Decode(&request)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// database operations
-	utils.CreateDBDataDB(request)
-
-	return c.JSON(http.StatusOK, &request)
-}
-
-func CreateServiceDataHandler(c echo.Context) error {
-	var request []models.ServiceData
-
-	err := json.NewDecoder(c.Request().Body).Decode(&request)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// database operations
-	utils.CreateServiceDataDB(request)
-
-	return c.JSON(http.StatusOK, &request)
-}

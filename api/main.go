@@ -23,7 +23,8 @@ func main() {
 		}
 	})
 
-	e.POST("/upload", handlers.UploadSourceCodeHandler)
+	e.POST("/file-upload", handlers.UploadSourceCodeHandler)
+	e.POST("/projects", handlers.CreateProjectHandler)
 
 	// Utility APIs
 	e.POST("/data/tech", handlers.CreateTechDataHandler)
