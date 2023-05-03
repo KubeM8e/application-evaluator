@@ -15,7 +15,7 @@ func main() {
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			err := next(c)
-			// Signal that the /test API is handled
+			// Signal that the /upload API is handled
 			if c.Path() == "/upload" {
 				ch <- true
 			}
@@ -39,4 +39,3 @@ func main() {
 	e.Logger.Fatal(e.Start(":8082"))
 
 }
-

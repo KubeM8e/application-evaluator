@@ -17,13 +17,14 @@ import (
 
 const (
 	OpenAIAPIKey  = "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"
-	OpenAIPrompt  = "If there are calls between microservices answer yes or no and list down the microservice in point form which calls the other microservice as \"microservice\" and the second microservice as \"depends on\" and the URL that is being called as \"URL\"."
+	OpenAIPrompt  = "If there are calls between microservices simply answer yes or no and if the answer is yes list down the microservice in point form which calls the other microservice as \"microservice\" and the second microservice as \"depends on\" and the URL that is being called as \"URL\". If the answer is no then provide the microservice as \"microservice\""
 	OpenAIPrompt1 = "Is there a call to another microservice in the following source code? If so which microservice is calling which? Provide the URL too."
 )
 
-func EvaluateServiceDependencies(sourceCodeDir string, serviceData []models.ServiceData, language string) {
+func EvaluateServiceDependencies(sourceCodeDir string, serviceData []models.ServiceData, language string) []string {
 	var imports []string
 	var serviceDependencies []models.ServiceDependency
+	var sortedMicroservices []string
 
 	filepath.Walk(sourceCodeDir, func(path string, info os.FileInfo, err error) error {
 		// Open the file
@@ -42,14 +43,74 @@ func EvaluateServiceDependencies(sourceCodeDir string, serviceData []models.Serv
 						for _, imp := range imports {
 							keywordFound := slices.Contains(data.Keywords, imp)
 							if keywordFound {
-								evaluationResp := passFileToDavinci(file.Name())       // reads the content of the file and pass to text-davinci-003
+								evaluationResp := passFileToDavinci(file.Name()) // reads the content of the file and pass to text-davinci-003
+								fmt.Println("evaluationResp: ", evaluationResp)
 								serviceDep := extractServiceDependency(evaluationResp) // extracts service dependency data
 								serviceDependencies = append(serviceDependencies, serviceDep)
 								//break
 							}
 						}
 
-					} else {
+					} else { // if the language is not Go
+						scanner := bufio.NewScanner(file)
+
+					loopScan:
+						for scanner.Scan() {
+							line := scanner.Text()
+							for _, keyword := range data.Keywords {
+								if strings.Contains(line, keyword) {
+									evaluationResp := passFileToDavinci(file.Name())
+									serviceDep := extractServiceDependency(evaluationResp)
+									serviceDependencies = append(serviceDependencies, serviceDep)
+									break loopScan
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// sort service dependencies
+		sortedMicroservices = sortDependencies(serviceDependencies)
+		return err
+	})
+
+	return sortedMicroservices
+
+}
+
+func EvaluateServiceDependencies2(sourceCodeDir string, serviceData []models.ServiceData, language string) []string {
+	var imports []string
+	var serviceDependencies []models.ServiceDependency
+	var sortedMicroservices []string
+
+	filepath.Walk(sourceCodeDir, func(path string, info os.FileInfo, err error) error {
+		// Open the file
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+
+		// TODO: optimize
+		if !info.IsDir() {
+			for _, data := range serviceData {
+				if strings.EqualFold(language, data.Language) {
+					if strings.EqualFold(language, "Go") {
+						imports = utils.CheckImportsInGo(file) // scan import section in go files
+
+						for _, imp := range imports {
+							keywordFound := slices.Contains(data.Keywords, imp)
+							if keywordFound {
+								evaluationResp := passFileToDavinci(file.Name()) // reads the content of the file and pass to text-davinci-003
+								fmt.Println("evaluationResp: ", evaluationResp)
+								serviceDep := extractServiceDependency(evaluationResp) // extracts service dependency data
+								serviceDependencies = append(serviceDependencies, serviceDep)
+								//break
+							}
+						}
+
+					} else { // if the language is not Go
 						//imports = checkImports(file)
 
 						scanner := bufio.NewScanner(file)
@@ -83,13 +144,15 @@ func EvaluateServiceDependencies(sourceCodeDir string, serviceData []models.Serv
 		}
 
 		// sort service dependencies
-		sortDependencies(serviceDependencies)
+		sortedMicroservices = sortDependencies(serviceDependencies)
 		return err
 	})
 
-	for i, v := range serviceDependencies {
-		fmt.Println("Dep:", i, v)
-	}
+	//for i, v := range serviceDependencies {
+	//	fmt.Println("Dep:", i, v)
+	//}
+
+	return sortedMicroservices
 
 }
 
@@ -146,7 +209,6 @@ func extractServiceDependency(text string) models.ServiceDependency {
 		re := regexp.MustCompile(`Microservice:\s+(?P<name>[\w\s]+)\s+Depends on:\s+(?P<depends_on>[\w\s]+)\s+URL:\s+(?P<url>http://\S+)`)
 		matches := re.FindStringSubmatch(text)
 
-		fmt.Println(len(matches))
 		if len(matches) >= 4 {
 			serviceDep = models.ServiceDependency{
 				Microservice: strings.TrimSpace(matches[re.SubexpIndex("name")]),
@@ -157,10 +219,11 @@ func extractServiceDependency(text string) models.ServiceDependency {
 		}
 	}
 
+	fmt.Println("serviceDep: ", serviceDep)
 	return serviceDep
 }
 
-func sortDependencies(dependencies []models.ServiceDependency) {
+func sortDependencies(dependencies []models.ServiceDependency) []string {
 	// Create a map to store the incoming edges for each microservice
 	incomingEdges := make(map[string][]string)
 
@@ -198,7 +261,8 @@ func sortDependencies(dependencies []models.ServiceDependency) {
 		queue = queue[1:]
 
 		// Add the microservice to the sorted list
-		sortedMicroservices = append(sortedMicroservices, microservice)
+		//sortedMicroservices = append(sortedMicroservices, microservice)
+		sortedMicroservices = append([]string{microservice}, sortedMicroservices...) // reverse order
 
 		// Remove the outgoing edges for the microservice
 		for _, dependent := range outgoingEdges[microservice] {
@@ -210,9 +274,11 @@ func sortDependencies(dependencies []models.ServiceDependency) {
 	}
 
 	// Print the sorted list of microservices in the correct order
-	for i := len(sortedMicroservices) - 1; i >= 0; i-- {
-		fmt.Println(sortedMicroservices[i])
-	}
+	//for i := len(sortedMicroservices) - 1; i >= 0; i-- {
+	//	fmt.Println(sortedMicroservices[i])
+	//}
+
+	return sortedMicroservices
 }
 
 func remove(slice []string, element string) []string {

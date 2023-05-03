@@ -3,7 +3,6 @@ package evaluators
 import (
 	"application-evaluator/models"
 	"application-evaluator/pkg/utils"
-	"fmt"
 )
 
 const (
@@ -29,12 +28,12 @@ func EvaluateSourcecode(sourceCode string) {
 
 	// evaluate service dependencies
 	serviceDependencies := utils.ReadFromServiceDB(serviceDB)
-	EvaluateServiceDependencies(sourceCode, serviceDependencies, language)
-	//fmt.Println(isService)
+	microservices := EvaluateServiceDependencies(sourceCode, serviceDependencies, language)
 
 	// response
 	response := models.EvaluationResponse{}
 	response.Language = language
+	response.Microservices = microservices
 
 	if hasDockerized {
 		response.HasDockerized = true
@@ -56,7 +55,4 @@ func EvaluateSourcecode(sourceCode string) {
 
 	response.Database = databaseUsed
 
-	fmt.Println("RESP: ", response)
-
-	//return c.JSON(http.StatusOK, &response)
 }

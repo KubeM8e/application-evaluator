@@ -52,7 +52,7 @@ func UploadSourceCodeHandler(c echo.Context) error {
 		log.Printf("Could not declare queue: %s", err)
 	}
 
-	// publishes source code directory to the channel
+	// publishes source code directory to the channel - evaluate() function will consume it
 	errPub := ch.Publish(
 		"",
 		queue.Name,
