@@ -34,7 +34,7 @@ func EvaluateMicroservices(sourceCodeDir string, serviceData []models.ServiceDat
 	var dependentMicroservices []string
 	var dbUsed string
 	var serviceName string
-	statefulService := make(map[string]string)
+	servicesWithDB := make(map[string]string)
 	microservicesMap := make(map[string]models.Microservice)
 
 	// gets project from projectID
@@ -66,10 +66,10 @@ func EvaluateMicroservices(sourceCodeDir string, serviceData []models.ServiceDat
 					defer file.Close()
 
 					// evaluate DB
-					if strings.EqualFold(statefulService[serviceName], "") {
+					if strings.EqualFold(servicesWithDB[serviceName], "") {
 						dbUsed = EvaluateDB(file, databasesSlice, language)
 						if dbUsed != "" {
-							statefulService[serviceName] = dbUsed
+							servicesWithDB[serviceName] = dbUsed
 						}
 					}
 
@@ -95,23 +95,23 @@ func EvaluateMicroservices(sourceCodeDir string, serviceData []models.ServiceDat
 
 	var serviceEval models.ServiceEvaluation
 	for _, m := range allMicroservices {
-		for k, _ := range statefulService {
+		for k, _ := range servicesWithDB {
 
 			microservice := models.Microservice{
 				ServiceName: m,
 				Configs:     nil,
 			}
 			if strings.EqualFold(m, k) {
-				var kubeConfigType []string
-				kubeConfigType = append(kubeConfigType, statefulSet)
-				microservice.KubeConfigType = kubeConfigType
-				serviceEval = models.ServiceEvaluation{DB: true}
+				serviceEval = models.ServiceEvaluation{
+					DB: true,
+				}
 			} else {
 				serviceEval = models.ServiceEvaluation{DB: false}
 			}
 			microservice.ServiceEvaluation = serviceEval
 			microservicesMap[m] = microservice
 		}
+
 	}
 
 	// gets order of all the microservices

@@ -45,7 +45,6 @@ type ProjectData struct {
 
 type Microservice struct {
 	ServiceName       string                `json:"serviceName,omitempty" yaml:"serviceName" bson:"serviceName,omitempty"`
-	KubeConfigType    []string              `json:"kubeConfigType,omitempty" yaml:"kubeConfigType" bson:"kubeConfigType,omitempty"`
 	Configs           []string              `json:"configs,omitempty" yaml:"configs" bson:"configs,omitempty"`
 	AvgReplicas       int                   `json:"avgReplicas,omitempty" yaml:"avgReplicas" bson:"avgReplicas,omitempty"`
 	MinReplicas       int                   `json:"minReplicas,omitempty" yaml:"minReplicas" bson:"minReplicas,omitempty"`
@@ -64,6 +63,9 @@ type EnvRequest struct {
 }
 
 type ServiceEvaluation struct {
+	KubeConfigType             []string      `json:"kubeConfigType,omitempty" yaml:"kubeConfigType" bson:"kubeConfigType,omitempty"`
+	ServiceType                string        `json:"serviceType,omitempty" yaml:"serviceType" bson:"serviceType,omitempty"`
+	ServiceTypeAdditional      string        `json:"serviceTypeAdditional,omitempty" yaml:"serviceTypeAdditional" bson:"serviceTypeAdditional,omitempty"`
 	HtmlCssJsFiles             bool          `json:"htmlCssJsFiles,omitempty" yaml:"htmlCssJsFiles" bson:"htmlCssJsFiles,omitempty"`
 	Php                        bool          `json:"php,omitempty" yaml:"php" bson:"php,omitempty"`
 	Ruby                       bool          `json:"ruby,omitempty" yaml:"ruby" bson:"ruby,omitempty"`
@@ -97,6 +99,6 @@ type ServiceEvaluation struct {
 }
 
 type MessageQueues struct {
-	SendAndReceiveMsgs bool `json:"sendAndReceiveMsgs,omitempty" yaml:"sendAndReceiveMsgs" bson:"sendAndReceiveMsgs,omitempty"`
-	StoreMsgs          bool `json:"storeMsgs,omitempty" yaml:"storeMsgs" bson:"storeMsgs,omitempty"`
+	SendAndReceiveMsgsOnly bool `json:"sendAndReceiveMsgsOnly,omitempty" yaml:"sendAndReceiveMsgsOnly" bson:"sendAndReceiveMsgsOnly,omitempty"`
+	StoreMsgs              bool `json:"storeMsgs,omitempty" yaml:"storeMsgs" bson:"storeMsgs,omitempty"`
 }

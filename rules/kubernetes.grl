@@ -1,0 +1,41 @@
+rule EvalDeploymentBased "Recommend a deployment based approach" salience 10 {
+	when
+		Eval.ServiceType.Compare("statelessService") == 0 || Eval.ServiceType.Compare("webService") == 0
+	then
+		Eval.KubeConfigType.Append("deploymentBased");
+		Retract("EvalDeploymentBased");
+}
+
+rule EvalStatefulSetBased "Recommend a stateful set based approach" salience 10 {
+	when
+		Eval.ServiceType.Compare("statefulService") == 0
+	then
+		Eval.KubeConfigType.Append("statefulSetBased");
+		Retract("EvalStatefulSetBased");
+}
+
+rule EvalDaemonSetBased "Recommend a daemon set based approach" salience 10 {
+	when
+		Eval.ServiceType.Compare("monitoringService") == 0 || Eval.ServiceType.Compare("networkingService") == 0
+	then
+		Eval.KubeConfigType.Append("daemonSetBased");
+		Retract("EvalDaemonSetBased");
+}
+
+rule EvalJobBased "Recommend a job based approach" salience 10 {
+	when
+		Eval.ServiceType.Compare("dataProcessingService") == 0 || Eval.ServiceType.Compare("reportingService") == 0
+	then
+		Eval.KubeConfigType.Append("jobBased");
+		Retract("EvalJobBased");
+}
+
+rule EvalCronJobBased "Recommend a cron job based approach" salience 10 {
+	when
+		Eval.ServiceType.Compare("notificationService") == 0 || Eval.ServiceTypeAdditional.Compare("backupService") == 0
+	then
+		Eval.KubeConfigType.Append("cronJobBased");
+		Retract("EvalCronJobBased");
+}
+
+

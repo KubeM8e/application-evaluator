@@ -3,6 +3,7 @@ package evaluators
 import (
 	"application-evaluator/models"
 	"application-evaluator/pkg/project"
+	"application-evaluator/pkg/ruleEngine"
 	"application-evaluator/pkg/utils"
 )
 
@@ -56,6 +57,16 @@ func EvaluateSourcecode(projectSource models.ProjectSource) {
 		evalResult.HasKubernetesDeployment = true
 	} else {
 		evalResult.HasKubernetesDeployment = false
+	}
+
+	// core rule based system
+	for k, microservice := range microservicesMap {
+		//microservice.ServiceEvaluation = ruleEngine.EvaluateServiceType(microservice.ServiceEvaluation)
+		eval := ruleEngine.EvaluateServiceType(microservice.ServiceEvaluation)
+		evalWithKubeConfig := ruleEngine.EvaluateKubeConfigType(eval)
+		microservice.ServiceEvaluation = evalWithKubeConfig
+		microservicesMap[k] = microservice
+
 	}
 
 	saveEvaluationResults(projectSource.ProjectId, evalResult, microservicesMap)

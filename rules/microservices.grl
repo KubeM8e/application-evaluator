@@ -1,0 +1,71 @@
+rule EvaluateStatelessServices "Check if the microservice is a stateless service" salience 10 {
+	when
+		!Eval.DB && !Eval.FileSystems && !Eval.Caching && !Eval.SessionManagement && Eval.MessageQueues.SendAndReceiveMsgsOnly
+	then
+		Eval.ServiceType = "statelessService";
+		Retract("EvaluateStatelessServices");
+}
+
+rule EvaluateWebServices "Check if the microservice is a web service" salience 10 {
+	when
+		Eval.HtmlCssJsFiles || Eval.Php || Eval.Ruby || Eval.Angular || Eval.URLRouting || Eval.HandleHTTPRequest
+	then
+		Eval.ServiceType = "webService";
+		Retract("EvaluateWebServices");
+}
+
+rule EvaluateStatefulServices "Check if the microservice is a stateful service" salience 10 {
+	when
+		Eval.DB || Eval.FileSystems || Eval.Caching || Eval.SessionManagement || Eval.MessageQueues.StoreMsgs
+	then
+		Eval.ServiceType = "statefulService";
+		Retract("EvaluateStatefulServices");
+}
+
+rule EvaluateNotificationServices "Check if the microservice is a notification service" salience 10 {
+	when
+		Eval.DeliverMsgs || Eval.IntegrateMsgPlatforms || Eval.MessageFormats
+	then
+		Eval.ServiceType = "notificationService";
+		Retract("EvaluateNotificationServices");
+}
+
+rule EvaluateBackupServices "Check if the microservice is a backup service" salience 10 {
+	when
+		Eval.DataTransfer || Eval.BackupFrequency || Eval.BackupDestination
+	then
+		Eval.ServiceTypeAdditional = "backupService";
+		Retract("EvaluateBackupServices");
+}
+
+rule EvaluateDataProcessingServices "Check if the microservice is a data processing service" salience 10 {
+	when
+		Eval.DataTransform || Eval.CollectData
+	then
+		Eval.ServiceType = "dataProcessingService";
+		Retract("EvaluateDataProcessingServices");
+}
+
+rule EvaluateReportingServices "Check if the microservice is a reporting service" salience 10 {
+	when
+		Eval.CollectData && (Eval.GenerateReports || Eval.ReportVisualization)
+	then
+		Eval.ServiceType = "reportingService";
+		Retract("EvaluateReportingServices");
+}
+
+rule EvaluateMonitoringServices "Check if the microservice is a monitoring service" salience 10 {
+	when
+		Eval.IntegrateMonitoringTools || Eval.AnalyzeLogs || Eval.CollectPerformanceMetrics || Eval.SendAlertsAndNotifications
+	then
+		Eval.ServiceType = "monitoringService";
+		Retract("EvaluateMonitoringServices");
+}
+
+rule EvaluateNetworkingServices "Check if the microservice is a networking service" salience 10 {
+	when
+		Eval.HandleNetworkCommunication || Eval.NetworkProtocolLibraries || Eval.Routing || Eval.LoadBalancing || Eval.FirewallRules
+	then
+		Eval.ServiceType = "networkingService";
+		Retract("EvaluateNetworkingServices");
+}
