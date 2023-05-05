@@ -20,60 +20,69 @@ const (
 	OpenAIPrompt1 = "Is there a call to another microservice in the following source code? If so which microservice is calling which? Provide the URL too."
 )
 
-func EvaluateServiceDependencies(sourceCodeDir string, serviceData []models.ServiceData, language string) []string {
+const (
+	statefulSet = "statefulSetBased"
+	daemonSet   = "daemonSetBased"
+	job         = "jobBased"
+	cronJob     = "cronJobBased"
+)
+
+func EvaluateMicroservices(sourceCodeDir string, serviceData []models.ServiceData, language string) ([]string, string, map[string]models.Microservice) {
 	var imports []string
 	var serviceDependencies []models.ServiceDependency
 	var allMicroservices []string
 	var dependentMicroservices []string
+	var dbUsed string
+	var serviceName string
+	statefulService := make(map[string]string)
+	microservicesMap := make(map[string]models.Microservice)
+
+	// gets project from projectID
+	//projectData := project.GetProject(projectId)
 
 	filepath.Walk(sourceCodeDir, func(path string, info os.FileInfo, err error) error {
-		// Open the file
-		file, err := os.Open(path)
 		if err != nil {
 			return err
 		}
+		if info.IsDir() && strings.Contains(strings.ToLower(info.Name()), "service") {
+			serviceName = info.Name()
+			// extracts microservices names
+			allMicroservices = append(allMicroservices, info.Name())
 
-		// extract microservices names
-		if info.IsDir() {
-			if strings.Contains(strings.ToLower(info.Name()), "service") {
-				allMicroservices = append(allMicroservices, info.Name())
-			}
-		}
+			// database
+			databasesSlice := utils.ReadFromDatabaseDB(databaseDB)
+			//databaseUsed := EvaluateDatabases(sourceCode, databasesSlice, language)
 
-		// TODO: optimize
-		if !info.IsDir() {
-			for _, data := range serviceData {
-				if strings.EqualFold(language, data.Language) {
-					if strings.EqualFold(language, "Go") {
-						imports = utils.CheckImportsInGo(file) // scan import section in go files
+			err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+				if !info.IsDir() {
+					file, errOpen := os.Open(path)
+					if errOpen != nil {
+						log.Printf("Could not open file: %s", errOpen)
+						return errOpen
+					}
+					defer file.Close()
 
-						for _, imp := range imports {
-							keywordFound := slices.Contains(data.Keywords, imp)
-							if keywordFound {
-								evaluationResp := passFileToDavinci(file.Name())       // reads the content of the file and pass to text-davinci-003
-								serviceDep := extractServiceDependency(evaluationResp) // extracts service dependency data
-								serviceDependencies = append(serviceDependencies, serviceDep)
-								//break
-							}
-						}
-
-					} else { // if the language is not Go
-						scanner := bufio.NewScanner(file)
-
-					loopScan:
-						for scanner.Scan() {
-							line := scanner.Text()
-							for _, keyword := range data.Keywords {
-								if strings.Contains(line, keyword) {
-									evaluationResp := passFileToDavinci(file.Name())
-									serviceDep := extractServiceDependency(evaluationResp)
-									serviceDependencies = append(serviceDependencies, serviceDep)
-									break loopScan
-								}
-							}
+					// evaluate DB
+					if strings.EqualFold(statefulService[serviceName], "") {
+						dbUsed = EvaluateDB(file, databasesSlice, language)
+						if dbUsed != "" {
+							statefulService[serviceName] = dbUsed
 						}
 					}
+
+					//evaluate service dependencies
+					serviceDependencies = EvaluateServiceDependencies(file, serviceData, language, imports, serviceDependencies)
+
 				}
+				return nil
+			})
+
+			if err != nil {
+				log.Printf("Could not read directory: %s", err)
+				return err
 			}
 		}
 
@@ -82,8 +91,69 @@ func EvaluateServiceDependencies(sourceCodeDir string, serviceData []models.Serv
 		return err
 	})
 
+	// sets values for each microservice
+
+	var serviceEval models.ServiceEvaluation
+	for _, m := range allMicroservices {
+		for k, _ := range statefulService {
+
+			microservice := models.Microservice{
+				ServiceName: m,
+				Configs:     nil,
+			}
+			if strings.EqualFold(m, k) {
+				var kubeConfigType []string
+				kubeConfigType = append(kubeConfigType, statefulSet)
+				microservice.KubeConfigType = kubeConfigType
+				serviceEval = models.ServiceEvaluation{DB: true}
+			} else {
+				serviceEval = models.ServiceEvaluation{DB: false}
+			}
+			microservice.ServiceEvaluation = serviceEval
+			microservicesMap[m] = microservice
+		}
+	}
+
 	// gets order of all the microservices
-	return sortAllMicroservices(allMicroservices, dependentMicroservices)
+	return sortAllMicroservices(allMicroservices, dependentMicroservices), dbUsed, microservicesMap
+}
+
+func EvaluateServiceDependencies(file *os.File, serviceData []models.ServiceData, language string, imports []string, serviceDependencies []models.ServiceDependency) []models.ServiceDependency {
+	for _, data := range serviceData {
+		if strings.EqualFold(language, data.Language) {
+			if strings.EqualFold(language, "Go") {
+				imports = utils.CheckImportsInGo(file) // scan import section in go files
+
+				for _, imp := range imports {
+					keywordFound := slices.Contains(data.Keywords, imp)
+					if keywordFound {
+						evaluationResp := passFileToDavinci(file.Name())       // reads the content of the file and pass to text-davinci-003
+						serviceDep := extractServiceDependency(evaluationResp) // extracts service dependency data
+						serviceDependencies = append(serviceDependencies, serviceDep)
+						//break
+					}
+				}
+
+			} else { // if the language is not Go
+				scanner := bufio.NewScanner(file)
+
+			loopScan:
+				for scanner.Scan() {
+					line := scanner.Text()
+					for _, keyword := range data.Keywords {
+						if strings.Contains(line, keyword) {
+							evaluationResp := passFileToDavinci(file.Name())
+							serviceDep := extractServiceDependency(evaluationResp)
+							serviceDependencies = append(serviceDependencies, serviceDep)
+							break loopScan
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return serviceDependencies
 }
 
 func sortAllMicroservices(allMicroservices []string, sortedMicroservice []string) []string {

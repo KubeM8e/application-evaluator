@@ -14,32 +14,31 @@ const (
 
 func EvaluateSourcecode(projectSource models.ProjectSource) {
 	sourceCode := projectSource.Sourcecode
+	evalResult := models.EvaluationResponse{}
 
 	// evaluates tech (language)
 	techDataSlice := utils.ReadFromTechDB(techDB)
 	language := EvaluateTechnologies(techDataSlice, sourceCode)
 
-	// check if dockerized
+	// checks if dockerized
 	hasDockerized := DockerizationEvaluator(sourceCode)
 
-	// check helm configs
+	// checks helm configs
 	hasServiceYaml, hasDeploymentYaml := HelmConfigsEvaluator(sourceCode)
 
-	// evaluate database
-	databasesSlice := utils.ReadFromDatabaseDB(databaseDB)
-	databaseUsed := EvaluateDatabases(sourceCode, databasesSlice, language)
+	// evaluates database
+	//databasesSlice := utils.ReadFromDatabaseDB(databaseDB)
+	//databaseUsed := EvaluateDatabases(sourceCode, databasesSlice, language)
 
-	// evaluate service dependencies
+	// evaluates service dependencies
 	serviceDependencies := utils.ReadFromServiceDB(serviceDB)
-	microservices := EvaluateServiceDependencies(sourceCode, serviceDependencies, language)
+	microservices, databaseUsed, microservicesMap := EvaluateMicroservices(sourceCode, serviceDependencies, language)
+	evalResult.Microservices = microservices
 
 	// evalResult
-	evalResult := models.EvaluationResponse{}
+
 	evalResult.Language = language
 	evalResult.Database = databaseUsed
-
-	// sets microservices
-	evalResult.Microservices = microservices
 
 	if hasDockerized {
 		evalResult.HasDockerized = true
@@ -59,16 +58,15 @@ func EvaluateSourcecode(projectSource models.ProjectSource) {
 		evalResult.HasKubernetesDeployment = false
 	}
 
-	evalResult.Database = databaseUsed
-
-	saveEvaluationResults(projectSource.ProjectId, evalResult)
+	saveEvaluationResults(projectSource.ProjectId, evalResult, microservicesMap)
 
 }
 
-func saveEvaluationResults(projectId string, evaluationResult models.EvaluationResponse) {
+func saveEvaluationResults(projectId string, evaluationResult models.EvaluationResponse, microservicesMap map[string]models.Microservice) {
 	projectData := project.GetProject(projectId)
 
 	projectData.EvaluationResult = evaluationResult
+	projectData.Microservices = microservicesMap
 
 	project.UpdateProject(projectId, projectData)
 }

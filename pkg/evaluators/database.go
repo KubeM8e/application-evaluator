@@ -125,6 +125,54 @@ func EvaluateDatabases(sourceCodeDir string, DBData []models.DBData, language st
 	return database
 }
 
+func EvaluateDB(file *os.File, DBData []models.DBData, language string) string {
+	var database string
+	//var databases []string
+
+outerLoop:
+	for _, data := range DBData {
+		if strings.EqualFold(language, data.Language) {
+			if strings.EqualFold(language, "Go") {
+				imports := utils.CheckImportsInGo(file) // scan import section in go files
+
+				for _, imp := range imports {
+					keywordFound := slices.Contains(data.Keywords, imp)
+					if keywordFound {
+						database = data.Database
+						break
+					}
+				}
+
+			} else {
+				//imports = utils.CheckImports(file)
+
+				// Java
+				scanner := bufio.NewScanner(file)
+				for scanner.Scan() {
+					line := scanner.Text()
+
+					for _, keyword := range data.Keywords {
+						if strings.Contains(line, keyword) {
+							database = data.Database
+							break outerLoop
+						}
+					}
+				}
+			}
+
+			//for _, v := range databases {
+			//	if database == v {
+			//		err := filepath.SkipDir
+			//		if err != nil {
+			//			log.Printf("Dtabase: Could not skip directory: %s", err)
+			//		}
+			//	}
+			//}
+		}
+	}
+	return database
+}
+
 func checkImportsInGo1(file *os.File, data models.DBData) string {
 	var inImports bool
 	var database string
