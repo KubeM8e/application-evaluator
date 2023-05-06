@@ -98,7 +98,7 @@ func UploadSourceCodeHandler(c echo.Context) error {
 func GetAllProjectsHandler(c echo.Context) error {
 	projects := project.GetAllProjects()
 
-	return c.JSON(http.StatusOK, projects)
+	return c.JSON(http.StatusOK, &projects)
 }
 
 func GetProjectHandler(c echo.Context) error {
@@ -174,61 +174,3 @@ func CreateServiceDataHandler(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, &request)
 }
-
-// Old version
-
-//func UploadSourceCodeHandler2(c echo.Context) error {
-//	sourceCodeHeader, err := c.FormFile("sourceCode")
-//	if err != nil {
-//		log.Printf("Could not retrieve the file %v", err)
-//	}
-//
-//	fileName := utils.CopyUploadedFile(sourceCodeHeader)
-//	sourceCode := utils.UnZipFile(fileName)
-//
-//	// evaluates tech (language)
-//	techDataSlice := utils.ReadFromTechDB(techDB)
-//	tech := evaluators.EvaluateTechnologies(techDataSlice, sourceCode)
-//
-//	// check if dockerized
-//	hasDockerized := evaluators.DockerizationEvaluator(sourceCode)
-//
-//	// check helm configs
-//	hasServiceYaml, hasDeploymentYaml := evaluators.HelmConfigsEvaluator(sourceCode)
-//
-//	// evaluate database
-//	databasesSlice := utils.ReadFromDatabaseDB(databaseDB)
-//	databaseUsed := evaluators.EvaluateDatabases(sourceCode, databasesSlice, tech)
-//
-//	// evaluate service dependencies
-//	serviceDependencies := utils.ReadFromServiceDB(serviceDB)
-//	evaluators.EvaluateServiceDependencies(sourceCode, serviceDependencies, tech)
-//	//log.Println(isService)
-//
-//	// response
-//	response := models.SuccessfulResponse{}
-//	response.UploadStatus = fileUploadStatus
-//	response.TechnologyUsed = techUsed + tech
-//
-//	if hasDockerized {
-//		response.DockerizationStatus = hasDockerizedMsg
-//	} else {
-//		response.DockerizationStatus = hasNotDockerizedMsg
-//	}
-//
-//	if hasServiceYaml {
-//		response.ServiceYamlStatus = hasServiceYamlMsg
-//	} else {
-//		response.ServiceYamlStatus = noServiceYamlMsg
-//	}
-//
-//	if hasDeploymentYaml {
-//		response.DeploymentYamlStatus = hasDeploymentYamlMsg
-//	} else {
-//		response.DeploymentYamlStatus = noDeploymentYamlMsg
-//	}
-//
-//	response.Database = databaseUsed
-//
-//	return c.JSON(http.StatusOK, &response)
-//}
