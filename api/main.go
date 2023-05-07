@@ -3,10 +3,13 @@ package main
 import (
 	"application-evaluator/api/handlers"
 	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 )
 
 func main() {
 	e := echo.New()
+
+	e.Use(middleware.CORS())
 
 	// creates a channel to signal when the /upload API is handled
 	ch := make(chan bool)
@@ -23,10 +26,10 @@ func main() {
 		}
 	})
 
-	e.POST("/file-upload", handlers.UploadSourceCodeHandler)
 	e.POST("/projects", handlers.CreateProjectHandler)
-	e.GET("projects", handlers.GetAllProjectsHandler)
+	e.POST("/file-upload", handlers.UploadSourceCodeHandler)
 	e.GET("/projects/:id", handlers.GetProjectHandler)
+	e.GET("projects", handlers.GetAllProjectsHandler)
 	e.PUT("/projects/:id", handlers.UpdateProjectHandler)
 
 	// Utility APIs

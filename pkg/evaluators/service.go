@@ -44,7 +44,7 @@ func EvaluateMicroservices(sourceCodeDir string, serviceData []models.ServiceDat
 		if err != nil {
 			return err
 		}
-		if info.IsDir() && strings.Contains(strings.ToLower(info.Name()), "service") {
+		if info.IsDir() && strings.HasSuffix(strings.ToLower(info.Name()), "service") {
 			serviceName = info.Name()
 			// extracts microservices names
 			allMicroservices = append(allMicroservices, info.Name())
@@ -178,77 +178,6 @@ func sortAllMicroservices(allMicroservices []string, sortedMicroservice []string
 	return sortedMicroservice
 }
 
-func EvaluateServiceDependencies2(sourceCodeDir string, serviceData []models.ServiceData, language string) []string {
-	var imports []string
-	var serviceDependencies []models.ServiceDependency
-	var sortedMicroservices []string
-
-	filepath.Walk(sourceCodeDir, func(path string, info os.FileInfo, err error) error {
-		// Open the file
-		file, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-
-		// TODO: optimize
-		if !info.IsDir() {
-			for _, data := range serviceData {
-				if strings.EqualFold(language, data.Language) {
-					if strings.EqualFold(language, "Go") {
-						imports = utils.CheckImportsInGo(file) // scan import section in go files
-
-						for _, imp := range imports {
-							keywordFound := slices.Contains(data.Keywords, imp)
-							if keywordFound {
-								evaluationResp := passFileToDavinci(file.Name())       // reads the content of the file and pass to text-davinci-003
-								serviceDep := extractServiceDependency(evaluationResp) // extracts service dependency data
-								serviceDependencies = append(serviceDependencies, serviceDep)
-								//break
-							}
-						}
-
-					} else { // if the language is not Go
-						//imports = checkImports(file)
-
-						scanner := bufio.NewScanner(file)
-
-					loopScan:
-						for scanner.Scan() {
-							line := scanner.Text()
-							for _, keyword := range data.Keywords {
-								if strings.Contains(line, keyword) {
-									evaluationResp := passFileToDavinci(file.Name())
-									serviceDep := extractServiceDependency(evaluationResp)
-									serviceDependencies = append(serviceDependencies, serviceDep)
-									break loopScan
-								}
-							}
-						}
-
-						//loop:
-						//	for _, imp := range imports {
-						//		for _, keyword := range data.Keywords {
-						//			if strings.Contains(imp, keyword) {
-						//				isServiceDependency = true
-						//				break loop
-						//			}
-						//		}
-						//	}
-
-					}
-				}
-			}
-		}
-
-		// sort service dependencies
-		sortedMicroservices = sortDependencies(serviceDependencies)
-		return err
-	})
-
-	return sortedMicroservices
-
-}
-
 func callDavinciModel(prompt string) string {
 	client := resty.New()
 
@@ -276,6 +205,10 @@ func callDavinciModel(prompt string) string {
 
 	response := models.DavinciResponse{}
 	err = json.Unmarshal(resp.Body(), &response)
+
+	if len(response.Choices) == 0 {
+		return ""
+	}
 
 	return response.Choices[0].Text
 }
@@ -375,4 +308,75 @@ func remove(slice []string, element string) []string {
 		}
 	}
 	return slice
+}
+
+func EvaluateServiceDependencies2(sourceCodeDir string, serviceData []models.ServiceData, language string) []string {
+	var imports []string
+	var serviceDependencies []models.ServiceDependency
+	var sortedMicroservices []string
+
+	filepath.Walk(sourceCodeDir, func(path string, info os.FileInfo, err error) error {
+		// Open the file
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+
+		// TODO: optimize
+		if !info.IsDir() {
+			for _, data := range serviceData {
+				if strings.EqualFold(language, data.Language) {
+					if strings.EqualFold(language, "Go") {
+						imports = utils.CheckImportsInGo(file) // scan import section in go files
+
+						for _, imp := range imports {
+							keywordFound := slices.Contains(data.Keywords, imp)
+							if keywordFound {
+								evaluationResp := passFileToDavinci(file.Name())       // reads the content of the file and pass to text-davinci-003
+								serviceDep := extractServiceDependency(evaluationResp) // extracts service dependency data
+								serviceDependencies = append(serviceDependencies, serviceDep)
+								//break
+							}
+						}
+
+					} else { // if the language is not Go
+						//imports = checkImports(file)
+
+						scanner := bufio.NewScanner(file)
+
+					loopScan:
+						for scanner.Scan() {
+							line := scanner.Text()
+							for _, keyword := range data.Keywords {
+								if strings.Contains(line, keyword) {
+									evaluationResp := passFileToDavinci(file.Name())
+									serviceDep := extractServiceDependency(evaluationResp)
+									serviceDependencies = append(serviceDependencies, serviceDep)
+									break loopScan
+								}
+							}
+						}
+
+						//loop:
+						//	for _, imp := range imports {
+						//		for _, keyword := range data.Keywords {
+						//			if strings.Contains(imp, keyword) {
+						//				isServiceDependency = true
+						//				break loop
+						//			}
+						//		}
+						//	}
+
+					}
+				}
+			}
+		}
+
+		// sort service dependencies
+		sortedMicroservices = sortDependencies(serviceDependencies)
+		return err
+	})
+
+	return sortedMicroservices
+
 }

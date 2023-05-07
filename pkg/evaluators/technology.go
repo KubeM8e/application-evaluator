@@ -9,51 +9,6 @@ import (
 	"strings"
 )
 
-func EvaluateTechnologies1(techMap map[string][]string, sourceCodeDir string) string {
-	var techFrequency []string
-
-	// Walk through all the files in the directory
-	err := filepath.Walk(sourceCodeDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		// Open the file
-		file, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-
-		defer file.Close()
-
-		// Read the file line by line
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			line := scanner.Text()
-
-			// Check if any of the keywords are present in the line
-			for tech, keywords := range techMap {
-				for _, word := range keywords {
-					if contains(line, word) {
-						techFrequency = append(techFrequency, tech)
-					}
-				}
-			}
-		}
-		return nil
-	})
-
-	if err != nil {
-		log.Fatalf("Could not scan the folder: %s", err)
-	}
-
-	// check the highest frequency tech
-	sourcecodeTech := findTech(techFrequency)
-
-	return sourcecodeTech
-
-}
-
 func EvaluateTechnologies(techData []models.TechData, sourceCodeDir string) string {
 	var techFrequency []string
 
@@ -121,5 +76,50 @@ func findTech(techSlice []string) string {
 	}
 
 	return mostFrequentStr
+
+}
+
+func EvaluateTechnologies1(techMap map[string][]string, sourceCodeDir string) string {
+	var techFrequency []string
+
+	// Walk through all the files in the directory
+	err := filepath.Walk(sourceCodeDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Open the file
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+
+		defer file.Close()
+
+		// Read the file line by line
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			line := scanner.Text()
+
+			// Check if any of the keywords are present in the line
+			for tech, keywords := range techMap {
+				for _, word := range keywords {
+					if contains(line, word) {
+						techFrequency = append(techFrequency, tech)
+					}
+				}
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		log.Fatalf("Could not scan the folder: %s", err)
+	}
+
+	// check the highest frequency tech
+	sourcecodeTech := findTech(techFrequency)
+
+	return sourcecodeTech
 
 }

@@ -23,9 +23,9 @@ type SuccessfulResponse struct {
 type EvaluationResponse struct {
 	Language                string   `json:"language,omitempty" bson:"language,omitempty"`
 	Database                string   `json:"database,omitempty" bson:"database,omitempty"`
-	HasDockerized           bool     `json:"hasDockerized" bson:"hasDockerized"`
-	HasKubernetesService    bool     `json:"hasKubernetesService" bson:"hasKubernetesService"`
-	HasKubernetesDeployment bool     `json:"hasKubernetesDeployment" bson:"hasKubernetesDeployment"`
+	HasDockerized           bool     `json:"hasDockerized,omitempty" bson:"hasDockerized,omitempty"`
+	HasKubernetesService    bool     `json:"hasKubernetesService,omitempty" bson:"hasKubernetesService,omitempty"`
+	HasKubernetesDeployment bool     `json:"hasKubernetesDeployment,omitempty" bson:"hasKubernetesDeployment,omitempty"`
 	Microservices           []string `json:"microservices,omitempty" bson:"microservices,omitempty"`
 }
 
@@ -40,7 +40,7 @@ type ProjectData struct {
 	ClusterIPs       []string                `json:"clusterIPs,omitempty" yaml:"clusterIPs" bson:"clusterIPs,omitempty"`
 	Microservices    map[string]Microservice `json:"microservices,omitempty" yaml:"microservices" bson:"microservices,omitempty"`
 	Monitoring       bool                    `json:"monitoring,omitempty" yaml:"monitoring" bson:"monitoring,omitempty"`
-	EvaluationResult EvaluationResponse      `json:"evaluationResult,omitempty" yaml:"evaluationResult" bson:"evaluationResult,omitempty"`
+	EvaluationResult EvaluationResponse      `json:"evaluationResult,omitempty" yaml:"evaluationResult,omitempty" bson:"evaluationResult,omitempty"`
 }
 
 type Microservice struct {

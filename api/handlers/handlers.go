@@ -26,7 +26,7 @@ func CreateProjectHandler(c echo.Context) error {
 	// creates project
 	createdAppData := project.CreateProject(request)
 
-	return c.JSON(http.StatusOK, &createdAppData)
+	return c.JSON(http.StatusCreated, &createdAppData)
 }
 
 func UploadSourceCodeHandler(c echo.Context) error {

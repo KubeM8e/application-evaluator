@@ -69,15 +69,21 @@ func EvaluateSourcecode(projectSource models.ProjectSource) {
 
 	}
 
-	saveEvaluationResults(projectSource.ProjectId, evalResult, microservicesMap)
+	SaveEvaluationResults(projectSource.ProjectId, evalResult, microservicesMap)
 
 }
 
-func saveEvaluationResults(projectId string, evaluationResult models.EvaluationResponse, microservicesMap map[string]models.Microservice) {
+func SaveEvaluationResults(projectId string, evaluationResult models.EvaluationResponse, microservicesMap map[string]models.Microservice) {
 	projectData := project.GetProject(projectId)
 
 	projectData.EvaluationResult = evaluationResult
 	projectData.Microservices = microservicesMap
 
 	project.UpdateProject(projectId, projectData)
+
+	//err := os.RemoveAll("/tmp")
+	//if err != nil {
+	//	log.Printf("Could not delete directory: %s", err)
+	//}
+
 }
